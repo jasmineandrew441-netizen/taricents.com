@@ -374,60 +374,149 @@ function loadBankDetails() {
 // Handle checkout form submission
 function handleCheckout(e) {
     e.preventDefault();
-    
-    const formData = {
-        customerName: document.getElementById('customerName').value,
-        customerEmail: document.getElementById('customerEmail').value,
-        customerPhone: document.getElementById('customerPhone').value,
-        deliveryAddress: document.getElementById('deliveryAddress').value,
-        landmark: document.getElementById('landmark').value,
-        items: cart,
-        subtotal: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        deliveryFee: 1500,
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 1500,
-        date: new Date().toISOString(),
-        status: 'pending'
-    };
-    
-    // Save order to localStorage
-    const orders = JSON.parse(localStorage.getItem('perfumeOrders') || '[]');
-    const orderId = 'ORD' + String(orders.length + 1).padStart(3, '0');
-    formData.id = orderId;
-    orders.push(formData);
-    localStorage.setItem('perfumeOrders', JSON.stringify(orders));
-    
-    // Clear cart
-    cart = [];
-    saveCart();
-    closeCartSidebar();
-    closeCheckoutModal();
-    
-    // Show success message
-    showMessage(`Order placed successfully! Your order ID is ${orderId}`, 'success');
-    
-    // Reset form
-    e.target.reset();
+
+    // Validate required fields
+    const customerName = document.getElementById('customerName').value.trim();
+    const customerEmail = document.getElementById('customerEmail').value.trim();
+    const customerPhone = document.getElementById('customerPhone').value.trim();
+    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+    const landmark = document.getElementById('landmark').value.trim();
+
+    if (!customerName || !customerEmail || !customerPhone || !deliveryAddress) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const fileInput = document.getElementById('paymentProof');
+    const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+    // Helper to finalize order save
+    function finalizeOrder(paymentProofData) {
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const deliveryFee = 1500;
+        const total = subtotal + deliveryFee;
+
+        const formData = {
+            customerName,
+            customerEmail,
+            customerPhone,
+            deliveryAddress,
+            landmark,
+            items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+            subtotal,
+            deliveryFee,
+            total,
+            paymentProof: paymentProofData || null,
+            date: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        // Save order to localStorage
+        const orders = JSON.parse(localStorage.getItem('perfumeOrders') || '[]');
+        const orderId = 'ORD' + String(orders.length + 1).padStart(3, '0');
+        formData.id = orderId;
+        orders.push(formData);
+        localStorage.setItem('perfumeOrders', JSON.stringify(orders));
+
+        // Clear cart
+        cart = [];
+        saveCart();
+        closeCartSidebar();
+        closeCheckoutModal();
+
+        // Show success message
+        showMessage(`Order placed successfully! Your order ID is ${orderId}`, 'success');
+
+        // Reset form
+        e.target.reset();
+
+        // Notify other tabs/windows
+        try { window.dispatchEvent(new Event('storage')); } catch (err) { /* ignore */ }
+    }
+
+    // If there's a payment proof file, read it as data URL (limit 5MB)
+    if (file) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            showMessage('Payment proof file must be 5MB or smaller', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const dataUrl = evt.target.result;
+            const paymentProofData = {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                dataUrl
+            };
+            finalizeOrder(paymentProofData);
+        };
+        reader.onerror = function() {
+            showMessage('Failed to read payment proof file', 'error');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // No proof provided
+        finalizeOrder(null);
+    }
 }
 
 // Load site settings
 function loadSiteSettings() {
     const settings = localStorage.getItem('siteSettings');
-    if (settings) {
-        const siteSettings = JSON.parse(settings);
-        
-        // Update hero section if settings exist
-        const heroTitle = document.querySelector('.hero-title');
-        const heroSubtitle = document.querySelector('.hero-subtitle');
-        
-        if (heroTitle && siteSettings.heroTitle) {
-            heroTitle.textContent = siteSettings.heroTitle;
-        }
-        
-        if (heroSubtitle && siteSettings.heroSubtitle) {
-            heroSubtitle.textContent = siteSettings.heroSubtitle;
-        }
+    if (!settings) return;
+
+    const siteSettings = JSON.parse(settings);
+
+    // Update hero section if settings exist
+    const heroTitle = document.querySelector('.hero-title');
+    const heroSubtitle = document.querySelector('.hero-subtitle');
+
+    if (heroTitle && siteSettings.heroTitle) {
+        heroTitle.textContent = siteSettings.heroTitle;
     }
+
+    if (heroSubtitle && siteSettings.heroSubtitle) {
+        heroSubtitle.textContent = siteSettings.heroSubtitle;
+    }
+
+    // Update about page content
+    const aboutTitle = document.getElementById('aboutTitle');
+    const aboutDescription = document.getElementById('aboutDescription');
+    if (aboutTitle && siteSettings.aboutTitle) aboutTitle.textContent = siteSettings.aboutTitle;
+    if (aboutDescription && siteSettings.aboutDescription) aboutDescription.innerHTML = siteSettings.aboutDescription;
+
+    // Update contact page details
+    const contactPhone = document.getElementById('contactPhoneDisplay');
+    const contactEmail = document.getElementById('contactEmailDisplay');
+    const contactAddress = document.getElementById('contactAddressDisplay');
+    if (contactPhone && siteSettings.contactPhone) contactPhone.textContent = siteSettings.contactPhone;
+    if (contactEmail && siteSettings.contactEmail) contactEmail.textContent = siteSettings.contactEmail;
+    if (contactAddress && siteSettings.contactAddress) contactAddress.innerHTML = siteSettings.contactAddress.replace(/\n/g, '<br>');
+
+    // Update footer contact info (applies to all pages)
+    const footerPhone = document.getElementById('footerPhone');
+    const footerEmail = document.getElementById('footerEmail');
+    const footerAddress = document.getElementById('footerAddress');
+    if (footerPhone && siteSettings.contactPhone) footerPhone.textContent = siteSettings.contactPhone;
+    if (footerEmail && siteSettings.contactEmail) footerEmail.textContent = siteSettings.contactEmail;
+    if (footerAddress && siteSettings.contactAddress) footerAddress.innerHTML = siteSettings.contactAddress.replace(/\n/g, '<br>');
+
+    // Update site name/description if present
+    const siteNameEl = document.querySelector('.site-name');
+    const siteDescEl = document.querySelector('.site-description');
+    if (siteNameEl && siteSettings.siteName) siteNameEl.textContent = siteSettings.siteName;
+    if (siteDescEl && siteSettings.siteDescription) siteDescEl.textContent = siteSettings.siteDescription;
 }
+
+// React to siteSettings changes triggered from admin (same tab)
+window.addEventListener('siteSettingsUpdated', loadSiteSettings);
+// Also react to localStorage changes from other tabs
+window.addEventListener('storage', function(e) {
+    if (e.key === 'siteSettings') loadSiteSettings();
+});
 
 // Show message function
 function showMessage(message, type) {
