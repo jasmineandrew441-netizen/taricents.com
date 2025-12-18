@@ -302,15 +302,23 @@ function displayOrders() {
         return;
     }
     
-    tbody.innerHTML = orders.map(order => `
+    tbody.innerHTML = orders.map(order => {
+        const displayName = order.customer || order.customerName || order.name || '';
+        const orderDate = order.date ? new Date(order.date).toLocaleDateString() : '';
+        const total = order.total || 0;
+        const status = order.status || 'pending';
+        return `
         <tr>
             <td>${order.id}</td>
-            <td>${order.customer}</td>
-            <td>${new Date(order.date).toLocaleDateString()}</td>
-            <td>₦${order.total.toLocaleString()}</td>
-            <td><span class="status-badge status-${order.status}">${order.status}</span></td>
+            <td>${displayName}</td>
+            <td>${orderDate}</td>
+            <td>₦${total.toLocaleString()}</td>
+            <td><span class="status-badge status-${status}">${status}</span></td>
             <td>
                 <div class="action-buttons">
+                    <button class="btn btn-info btn-sm" onclick="showOrderDetails('${order.id}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
                     <button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order.id}', 'completed')">
                         <i class="fas fa-check"></i>
                     </button>
@@ -320,7 +328,7 @@ function displayOrders() {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // Update order status
@@ -332,6 +340,83 @@ function updateOrderStatus(orderId, newStatus) {
         displayOrders();
         showMessage(`Order status updated to ${newStatus}`, 'success');
     }
+}
+
+// Show full order details in modal (including items and proof of payment)
+function showOrderDetails(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const modal = document.getElementById('orderDetailsModal');
+    if (!modal) {
+        alert(`Order ${orderId}\nTotal: ₦${(order.total||0).toLocaleString()}`);
+        return;
+    }
+
+    const itemsHtml = (order.items || []).map(i => `
+        <tr>
+            <td>${i.name}</td>
+            <td>${i.quantity}</td>
+            <td>₦${(i.price||0).toLocaleString()}</td>
+            <td>₦${((i.price||0) * (i.quantity||0)).toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    let proofHtml = '<p><em>No proof of payment provided</em></p>';
+    if (order.paymentProof && order.paymentProof.dataUrl) {
+        proofHtml = `
+            <p><strong>Proof of Payment:</strong></p>
+            <div style="margin:10px 0;">
+                <a href="${order.paymentProof.dataUrl}" target="_blank" download="${order.paymentProof.name}">
+                    <img src="${order.paymentProof.dataUrl}" alt="Proof of Payment" style="max-width:100%; height:auto; border:1px solid #eee; border-radius:6px;" />
+                </a>
+                <p style="font-size:0.9rem; color:#666; margin-top:6px;">File: ${order.paymentProof.name} (${Math.round((order.paymentProof.size||0)/1024)} KB)</p>
+            </div>
+        `;
+    }
+
+    modal.querySelector('.modal-body').innerHTML = `
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:280px;">
+                <p><strong>Order ID:</strong> ${order.id}</p>
+                <p><strong>Customer:</strong> ${order.customer || order.customerName || ''}</p>
+                <p><strong>Email:</strong> ${order.email || order.customerEmail || ''}</p>
+                <p><strong>Phone:</strong> ${order.phone || order.customerPhone || ''}</p>
+                <p><strong>Address:</strong> ${order.deliveryAddress || 'N/A'}</p>
+                <p><strong>Landmark:</strong> ${order.landmark || 'N/A'}</p>
+                <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
+                <p><strong>Subtotal:</strong> ₦${(order.subtotal||0).toLocaleString()}</p>
+                <p><strong>Delivery fee:</strong> ₦${(order.deliveryFee||0).toLocaleString()}</p>
+                <p><strong>Total:</strong> ₦${(order.total||0).toLocaleString()}</p>
+                <p><strong>Status:</strong> ${order.status}</p>
+            </div>
+            <div style="flex:1; min-width:280px;">
+                <h4>Items</h4>
+                <table class="products-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div style="margin-top:14px;">
+                    ${proofHtml}
+                </div>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'block';
+}
+
+function closeOrderDetailsModal() {
+    const modal = document.getElementById('orderDetailsModal');
+    if (modal) modal.style.display = 'none';
 }
 
 // Load dashboard statistics
@@ -411,6 +496,9 @@ function saveBankSettings() {
     settings.accountNumber = accountNumber;
     
     localStorage.setItem('siteSettings', JSON.stringify(settings));
+    // update admin UI and notify site pages
+    loadSiteSettings();
+    try { window.dispatchEvent(new Event('siteSettingsUpdated')); } catch (e) {}
     showMessage('Bank settings saved successfully', 'success');
 }
 
@@ -424,6 +512,9 @@ function saveSiteSettings() {
     settings.siteDescription = siteDescription;
     
     localStorage.setItem('siteSettings', JSON.stringify(settings));
+    // update admin UI and notify site pages
+    loadSiteSettings();
+    try { window.dispatchEvent(new Event('siteSettingsUpdated')); } catch (e) {}
     showMessage('Site settings saved successfully', 'success');
 }
 
@@ -437,6 +528,9 @@ function saveHeroContent() {
     settings.heroSubtitle = heroSubtitle;
     
     localStorage.setItem('siteSettings', JSON.stringify(settings));
+    // update admin UI and notify site pages
+    loadSiteSettings();
+    try { window.dispatchEvent(new Event('siteSettingsUpdated')); } catch (e) {}
     showMessage('Hero content saved successfully', 'success');
 }
 
@@ -450,6 +544,9 @@ function saveAboutContent() {
     settings.aboutDescription = aboutDescription;
     
     localStorage.setItem('siteSettings', JSON.stringify(settings));
+    // update admin UI and notify site pages
+    loadSiteSettings();
+    try { window.dispatchEvent(new Event('siteSettingsUpdated')); } catch (e) {}
     showMessage('About content saved successfully', 'success');
 }
 
@@ -465,6 +562,9 @@ function saveContactContent() {
     settings.contactAddress = contactAddress;
     
     localStorage.setItem('siteSettings', JSON.stringify(settings));
+    // update admin UI and notify site pages
+    loadSiteSettings();
+    try { window.dispatchEvent(new Event('siteSettingsUpdated')); } catch (e) {}
     showMessage('Contact information saved successfully', 'success');
 }
 
