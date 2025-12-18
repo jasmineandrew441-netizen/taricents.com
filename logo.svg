@@ -1,0 +1,37 @@
+<svg width="220" height="70" viewBox="0 0 220 70" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bottleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B4513;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Perfume bottle icon -->
+  <g transform="translate(5, 10)">
+    <!-- Bottle cap -->
+    <rect x="12" y="0" width="16" height="6" rx="2" fill="#D4AF37"/>
+    <!-- Bottle neck -->
+    <path d="M 14 6 L 14 12 L 26 12 L 26 6" fill="#8B4513"/>
+    <!-- Main bottle body -->
+    <path d="M 11 12 L 8 38 C 8 40 10 42 13 42 L 27 42 C 30 42 32 40 32 38 L 29 12 Z" fill="url(#bottleGrad)"/>
+    <!-- Bottle highlight -->
+    <ellipse cx="16" cy="22" rx="2.5" ry="7" fill="#FFFFFF" opacity="0.4"/>
+    <!-- Decorative band -->
+    <rect x="8" y="30" width="24" height="1.5" fill="#D4AF37"/>
+  </g>
+  
+  <!-- Background rectangle for text -->
+  <rect x="45" y="8" width="170" height="54" rx="5" fill="#FFFFFF" opacity="0.95"/>
+  
+  <!-- TARICENT text with stroke for visibility -->
+  <text x="50" y="38" font-family="'Arial Black', 'Impact', sans-serif" font-size="26" font-weight="900" fill="#2C1810" letter-spacing="1.5" stroke="#D4AF37" stroke-width="0.5">TARICENT</text>
+  
+  <!-- Tagline -->
+  <text x="52" y="52" font-family="'Arial', sans-serif" font-size="8" fill="#8B4513" letter-spacing="2.5" font-weight="700">PREMIUM FRAGRANCES</text>
+  
+  <!-- Decorative corner elements -->
+  <circle cx="48" cy="11" r="1.5" fill="#D4AF37"/>
+  <circle cx="212" cy="11" r="1.5" fill="#D4AF37"/>
+  <circle cx="48" cy="59" r="1.5" fill="#D4AF37"/>
+  <circle cx="212" cy="59" r="1.5" fill="#D4AF37"/>
+</svg>
