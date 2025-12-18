@@ -21,7 +21,7 @@ function setupEventListeners() {
     const checkoutForm = document.getElementById('checkoutForm');
     
     if (cartBtn) {
-        cartBtn.addEventListener('click', openCart);
+        cartBtn.addEventListener('click', function(e){ e.preventDefault(); openCart(); });
     }
     
     if (closeCart) {
@@ -29,12 +29,23 @@ function setupEventListeners() {
     }
     
     if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', openCheckoutModal);
+        // Prevent default and ensure checkout opens the modal reliably
+        checkoutBtn.addEventListener('click', function(e){ e.preventDefault(); openCheckoutModal(); });
     }
     
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', handleCheckout);
     }
+
+    // Fallback delegation: handle clicks on dynamically added or late elements with id="checkoutBtn"
+    document.addEventListener('click', function(e){
+        try {
+            if (e.target && (e.target.id === 'checkoutBtn' || e.target.closest('#checkoutBtn'))) {
+                e.preventDefault();
+                openCheckoutModal();
+            }
+        } catch (err) { /* ignore */ }
+    });
     
     // Mobile menu
     const hamburger = document.querySelector('.hamburger');
@@ -311,8 +322,13 @@ function closeCartSidebar() {
 
 // Open checkout modal
 function openCheckoutModal() {
+    // Make sure we have the latest cart state (in case it changed in another tab or was modified directly in localStorage)
+    loadCart();
+
     if (cart.length === 0) {
         showMessage('Your cart is empty!', 'error');
+        // Open the cart sidebar so the user can see and add items
+        openCart();
         return;
     }
     
