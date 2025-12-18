@@ -677,6 +677,22 @@
         </div>
     </div>
 
+    <!-- Order Details Modal -->
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Order Details</h3>
+                <span class="close" onclick="closeOrderDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 10px;">
+                <!-- Filled dynamically by admin-dashboard.js -->
+            </div>
+            <div style="padding: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeOrderDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="products.js"></script>
     <script src="admin-dashboard.js"></script>
 </body>
